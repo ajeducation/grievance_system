@@ -51,7 +51,7 @@ if ($step === 3 && $_SERVER['REQUEST_METHOD'] === 'POST') {
         $_SESSION['dbpass']
     );
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    $pdo->prepare("INSERT INTO users (name, email, role) VALUES (?, ?, ?)")->execute([$name, $email, 'admin']);
+    $pdo->prepare("INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, ?)")->execute([$name, $email, $pass, 'admin']);
     $_SESSION['install_done'] = true;
     header('Location: ?step=4');
     exit;
@@ -112,7 +112,13 @@ if ($step === 3 && $_SERVER['REQUEST_METHOD'] === 'POST') {
                 <button type="submit" class="btn btn-primary btn-block">Finish Installation</button>
             </form>
         <?php elseif ($step === 4): ?>
-            <div class="alert alert-success">Installation complete! <a href="/public/index.php">Go to Application</a></div>
+            <div class="alert alert-success">
+                Installation complete! <a href="/public/index.php">Go to Application</a>
+                <hr>
+                <strong>Important:</strong> For security, please delete <code>public/install.php</code> and the <code>install/</code> directory:<br>
+                <code>rm public/install.php</code><br>
+                <code>rm -rf install</code>
+            </div>
         <?php endif; ?>
     </div>
 </div>

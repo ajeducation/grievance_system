@@ -1,3 +1,23 @@
+## SSO Configuration
+1. **Set file permissions:**
+  - Ensure the web server user can write to `config/` and `install/` during installation.
+  - Example:
+  ```bash
+  chmod 755 config install
+  chmod 644 config/database.php install/schema.sql
+2. **Set your web server’s document root to the `public/` directory.**
+3. **Visit the installer:**
+  - Go to `http://yourdomain.com/install.php` (or `http://localhost/grievance_system/public/install.php`)
+  - Follow the on-screen steps:
+  1. Enter database details
+  2. Create tables and config
+  3. Set up the first super administrator
+4. **Register your application in Microsoft Entra** and update `src/sso/microsoft.php` with your credentials.
+  - Set **Redirect URI** to your callback URL, e.g.:
+  ```
+  https://yourdomain.com/sso/callback.php
+  ```
+  (For local testing: `http://localhost/grievance_system/public/sso/callback.php`)
 
 # Student Grievance System
 
@@ -77,9 +97,10 @@ cd grievance_system
 
 ---
 
+
 ## After Installation
 
-- **Delete or restrict the installer for security:**
+- **Delete the installer for security:**
   ```bash
   rm public/install.php
   rm -rf install
