@@ -1,10 +1,20 @@
 <?php
 // Home page
-require_once __DIR__ . '/../templates/header.php';
 ?>
-<div class="card p-5 shadow-sm mx-auto" style="max-width: 500px;">
-	<h1 class="mb-3 text-center font-weight-bold">Welcome to the Student Grievance System</h1>
-	<p class="text-center"><a href="?page=login" class="btn btn-primary btn-lg">Login with Microsoft Account</a></p>
+require_once __DIR__ . '/../includes/layout.php';
+require_once __DIR__ . '/../src/db.php';
+require_once __DIR__ . '/../src/functions.php';
+session_start();
+require_login();
+$user = $_SESSION['user'];
+$page_title = 'Home';
+ob_start();
+?>
+<div class="card shadow-sm animate__animated animate__fadeInUp">
+	<div class="card-body">
+		<h2 class="card-title">Welcome to the Grievance System</h2>
+		<p class="card-text">Use the left panel to navigate through the system features.</p>
+	</div>
 </div>
+<?php $content = ob_get_clean(); include __DIR__ . '/../includes/layout.php'; ?>
 <?php
-require_once __DIR__ . '/../templates/footer.php';

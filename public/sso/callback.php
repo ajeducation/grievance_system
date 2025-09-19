@@ -45,8 +45,8 @@ if (!isset($token['access_token'])) {
     die('No access token received');
 }
 
-// Fetch user info
-$user_url = 'https://graph.microsoft.com/oidc/userinfo';
+// Fetch user info and group membership
+$user_url = 'https://graph.microsoft.com/v1.0/me?$select=displayName,mail,userPrincipalName&$expand=memberOf($select=displayName)';
 $opts = [
     'http' => [
         'header' => "Authorization: Bearer {$token['access_token']}\r\n"
@@ -59,11 +59,21 @@ if ($userinfo === FALSE) {
 }
 $userinfo = json_decode($userinfo, true);
 
-// Extract user info
-$email = $userinfo['email'] ?? $userinfo['preferred_username'] ?? null;
-$name = $userinfo['name'] ?? '';
+$email = $userinfo['mail'] ?? $userinfo['userPrincipalName'] ?? null;
+$name = $userinfo['displayName'] ?? '';
 if (!$email) {
     die('No email found in user info');
+}
+
+// Default role
+$role = 'staff';
+if (isset($userinfo['memberOf']) && is_array($userinfo['memberOf'])) {
+    foreach ($userinfo['memberOf'] as $group) {
+        if (isset($group['displayName']) && preg_match('/\\b(2018 Students|2020 Students)\\b/i', $group['displayName'])) {
+            $role = 'student';
+            break;
+        }
+    }
 }
 
 // Check if user exists, else create
@@ -71,16 +81,22 @@ $stmt = $pdo->prepare('SELECT * FROM users WHERE email = ?');
 $stmt->execute([$email]);
 $user = $stmt->fetch(PDO::FETCH_ASSOC);
 if (!$user) {
-    // Default role: student
     $stmt = $pdo->prepare('INSERT INTO users (name, email, role) VALUES (?, ?, ?)');
-    $stmt->execute([$name, $email, 'student']);
+    $stmt->execute([$name, $email, $role]);
     $user_id = $pdo->lastInsertId();
     $user = [
         'id' => $user_id,
         'name' => $name,
         'email' => $email,
-        'role' => 'student',
+        'role' => $role,
     ];
+} else {
+    // Optionally update role if group membership changed
+    if ($user['role'] !== $role) {
+        $stmt = $pdo->prepare('UPDATE users SET role = ? WHERE id = ?');
+        $stmt->execute([$role, $user['id']]);
+        $user['role'] = $role;
+    }
 }
 
 // Set session

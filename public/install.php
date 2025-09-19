@@ -1,8 +1,38 @@
 <?php
 // Installer script for Student Grievance System
+
 session_start();
 $step = isset($_GET['step']) ? (int)$_GET['step'] : 1;
 $error = '';
+
+// Dependency check (Step 0)
+function check_dependencies() {
+    $errors = [];
+    if (version_compare(PHP_VERSION, '7.4', '<')) $errors[] = 'PHP 7.4 or higher required.';
+    foreach ([
+        'pdo_mysql' => 'PDO MySQL',
+        'curl' => 'cURL',
+        'mbstring' => 'mbstring',
+        'gd' => 'GD',
+        'fileinfo' => 'fileinfo',
+        'zip' => 'zip',
+        'xml' => 'xml',
+    ] as $ext => $desc) {
+        if (!extension_loaded($ext)) $errors[] = "$desc PHP extension missing.";
+    }
+    // Composer dependencies
+    $vendor = __DIR__ . '/../vendor/autoload.php';
+    if (!file_exists($vendor)) $errors[] = 'Composer dependencies not installed. Run <code>composer install</code>.';
+    else {
+        if (!class_exists('PhpOffice\\PhpWord\\PhpWord')) $errors[] = 'PhpWord not installed. Run <code>composer require phpoffice/phpword</code>.';
+        if (!class_exists('Dompdf\\Dompdf')) $errors[] = 'Dompdf not installed. Run <code>composer require dompdf/dompdf</code>.';
+    }
+    return $errors;
+}
+
+if ($step === 0) {
+    $dep_errors = check_dependencies();
+}
 
 function write_config($dbhost, $dbname, $dbuser, $dbpass) {
     $config = "<?php\nreturn [\n    'host' => '$dbhost',\n    'dbname' => '$dbname',\n    'username' => '$dbuser',\n    'password' => '$dbpass',\n    'charset' => 'utf8mb4',\n];\n";
@@ -44,17 +74,23 @@ if ($step === 2 && $_SERVER['REQUEST_METHOD'] === 'POST') {
 if ($step === 3 && $_SERVER['REQUEST_METHOD'] === 'POST') {
     $name = $_POST['admin_name'];
     $email = $_POST['admin_email'];
-    $pass = password_hash($_POST['admin_pass'], PASSWORD_DEFAULT);
-    $pdo = new PDO(
-        "mysql:host={$_SESSION['dbhost']};dbname={$_SESSION['dbname']};charset=utf8mb4",
-        $_SESSION['dbuser'],
-        $_SESSION['dbpass']
-    );
-    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    $pdo->prepare("INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, ?)")->execute([$name, $email, $pass, 'admin']);
-    $_SESSION['install_done'] = true;
-    header('Location: ?step=4');
-    exit;
+    $pass1 = $_POST['admin_pass'];
+    $pass2 = $_POST['admin_pass2'];
+    if ($pass1 !== $pass2) {
+        $error = 'Passwords do not match.';
+    } else {
+        $pass = password_hash($pass1, PASSWORD_DEFAULT);
+        $pdo = new PDO(
+            "mysql:host={$_SESSION['dbhost']};dbname={$_SESSION['dbname']};charset=utf8mb4",
+            $_SESSION['dbuser'],
+            $_SESSION['dbpass']
+        );
+        $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+        $pdo->prepare("INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, ?)")->execute([$name, $email, $pass, 'admin']);
+        $_SESSION['install_done'] = true;
+        header('Location: ?step=4');
+        exit;
+    }
 }
 
 ?><!DOCTYPE html>
@@ -69,7 +105,29 @@ if ($step === 3 && $_SERVER['REQUEST_METHOD'] === 'POST') {
 <div class="container mt-5" style="max-width:600px;">
     <div class="card p-4 shadow-sm">
         <h2 class="mb-4">Install Student Grievance System</h2>
-        <?php if ($step === 1): ?>
+        <?php if ($step === 0): ?>
+            <h5>Dependency Check</h5>
+            <?php $dep_errors = check_dependencies(); ?>
+            <?php if ($dep_errors): ?>
+                <div class="alert alert-danger">
+                    <b>Missing dependencies:</b><br>
+                    <ul>
+                        <?php foreach ($dep_errors as $err): ?><li><?php echo $err; ?></li><?php endforeach; ?>
+                    </ul>
+                    <hr>
+                    <b>Suggestions:</b><br>
+                    <ul>
+                        <li>Install PHP extensions using <code>sudo apt install php-xml php-mbstring php-gd php-curl php-zip php-fileinfo</code></li>
+                        <li>Install Composer dependencies using <code>composer install</code></li>
+                        <li>Install missing packages as suggested above</li>
+                    </ul>
+                </div>
+                <a href="?step=0" class="btn btn-secondary">Re-check</a>
+            <?php else: ?>
+                <div class="alert alert-success">All dependencies are met.</div>
+                <a href="?step=1" class="btn btn-primary">Start Installation</a>
+            <?php endif; ?>
+        <?php elseif ($step === 1): ?>
             <form method="post">
                 <div class="form-group">
                     <label>Database Host</label>
@@ -96,6 +154,7 @@ if ($step === 3 && $_SERVER['REQUEST_METHOD'] === 'POST') {
                 <button type="submit" class="btn btn-primary btn-block">Next</button>
             </form>
         <?php elseif ($step === 3): ?>
+            <?php if ($error): ?><div class="alert alert-danger"><?php echo $error; ?></div><?php endif; ?>
             <form method="post">
                 <div class="form-group">
                     <label>Super Admin Name</label>
@@ -108,6 +167,10 @@ if ($step === 3 && $_SERVER['REQUEST_METHOD'] === 'POST') {
                 <div class="form-group">
                     <label>Password</label>
                     <input type="password" name="admin_pass" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label>Repeat Password</label>
+                    <input type="password" name="admin_pass2" class="form-control" required>
                 </div>
                 <button type="submit" class="btn btn-primary btn-block">Finish Installation</button>
             </form>

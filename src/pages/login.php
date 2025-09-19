@@ -1,6 +1,6 @@
 <?php
 // Login page (Microsoft SSO placeholder)
-require_once __DIR__ . '/../templates/header.php';
+require_once __DIR__ . '/../includes/layout_login.php';
 session_start();
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['local_email'], $_POST['local_pass'])) {
 		require_once __DIR__ . '/../db.php';
@@ -15,6 +15,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['local_email'], $_POST
 				echo '<div class="alert alert-danger">Invalid credentials.</div>';
 		}
 }
+?>
+<?php
+$page_title = 'Login';
+ob_start();
 ?>
 <div class="card p-5 shadow-sm mx-auto" style="max-width: 400px;">
 	<h2 class="mb-3 text-center font-weight-bold">Login</h2>
@@ -33,5 +37,4 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['local_email'], $_POST
 		<button type="submit" class="btn btn-info btn-block">Login as Super Admin</button>
 	</form>
 </div>
-<?php
-require_once __DIR__ . '/../templates/footer.php';
+<?php $content = ob_get_clean(); include __DIR__ . '/../includes/layout_login.php'; ?>
