@@ -1,3 +1,16 @@
+-- Create grievance_appeals table first
+CREATE TABLE grievance_appeals (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    grievance_id INT NOT NULL,
+    user_id INT NOT NULL,
+    status VARCHAR(32) NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT NULL,
+    comment TEXT,
+    FOREIGN KEY (grievance_id) REFERENCES grievances(id),
+    FOREIGN KEY (user_id) REFERENCES users(id)
+);
+
 CREATE TABLE grievance_appeal_audit (
     id INT AUTO_INCREMENT PRIMARY KEY,
     appeal_id INT NOT NULL,
@@ -5,7 +18,7 @@ CREATE TABLE grievance_appeal_audit (
     performed_by INT NOT NULL,
     performed_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     details TEXT,
-    FOREIGN KEY (appeal_id) REFERENCES grievance_appeals(grievance_id),
+    FOREIGN KEY (appeal_id) REFERENCES grievance_appeals(id),
     FOREIGN KEY (performed_by) REFERENCES users(id)
 );
 CREATE TABLE grievance_appeal_attachments (
@@ -15,7 +28,7 @@ CREATE TABLE grievance_appeal_attachments (
     file_path VARCHAR(255) NOT NULL,
     uploaded_by INT NOT NULL,
     uploaded_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (appeal_id) REFERENCES grievance_appeals(grievance_id),
+    FOREIGN KEY (appeal_id) REFERENCES grievance_appeals(id),
     FOREIGN KEY (uploaded_by) REFERENCES users(id)
 );
 CREATE TABLE comments (
